@@ -4,6 +4,8 @@ const form = document.getElementById('new-task-form');
 const input = document.getElementById('new-task');
 const dueInput = document.getElementById('new-due');
 const tagsInput = document.getElementById('new-tags');
+const repeatInput = document.getElementById('new-repeat');
+const everyInput = document.getElementById('new-every');
 const list = document.getElementById('task-list');
 const empty = document.getElementById('empty-state');
 const count = document.getElementById('remaining');
@@ -18,10 +20,59 @@ const filter = { status: 'all', tag: '' };
 
 // --- helpers -------------------------------------------------------------
 
-const today = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-};
+const toYmd = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const fromYmd = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const today = () => toYmd(new Date());
+
+// --- recurrence (Ticket #5): repeat = { unit: 'day'|'week'|'month', every: N, day?: anchor day-of-month }
+
+function readRepeat(select, every) {
+  if (!select.value) return null;
+  if (select.value === 'custom') return { unit: 'day', every: Math.max(1, parseInt(every.value, 10) || 1) };
+  const [unit, n] = select.value.split(':');
+  return { unit, every: Number(n) };
+}
+
+function repeatValue(repeat) {
+  if (!repeat) return '';
+  if (repeat.every === 1) return `${repeat.unit}:1`;
+  return 'custom';
+}
+
+function repeatLabel({ unit, every }) {
+  if (every === 1) return { day: 'Repeats daily', week: 'Repeats weekly', month: 'Repeats monthly' }[unit];
+  return `Repeats every ${every} ${unit}s`;
+}
+
+function step(ymd, repeat) {
+  const d = fromYmd(ymd);
+  if (repeat.unit === 'day') d.setDate(d.getDate() + repeat.every);
+  else if (repeat.unit === 'week') d.setDate(d.getDate() + 7 * repeat.every);
+  else {
+    // same day-of-month, clamped to the month's last day (Jan 31 -> Feb 28 -> Mar 31)
+    const anchor = repeat.day ?? d.getDate();
+    const target = new Date(d.getFullYear(), d.getMonth() + repeat.every, 1);
+    const last = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+    target.setDate(Math.min(anchor, last));
+    return toYmd(target);
+  }
+  return toYmd(d);
+}
+
+// next occurrence after `due`, moved forward until it is today or later
+function nextDue(due, repeat) {
+  let next = step(due, repeat);
+  while (next < today()) next = step(next, repeat);
+  return next;
+}
+
+// recurring tasks need a due date; monthly ones remember their day-of-month
+function withRepeat(fields, repeat) {
+  if (!repeat) return { ...fields, repeat: null };
+  const dueDate = fields.dueDate || today();
+  if (repeat.unit === 'month') repeat = { ...repeat, day: fromYmd(dueDate).getDate() };
+  return { ...fields, dueDate, repeat };
+}
 
 function parseTags(text) {
   const tags = text.split(',').map((t) => t.trim().toLowerCase().replace(/^#/, '')).filter(Boolean);
@@ -92,7 +143,7 @@ function renderTask(task) {
   toggle.type = 'checkbox';
   toggle.checked = task.done;
   toggle.setAttribute('aria-label', `Mark "${task.title}" as ${task.done ? 'not done' : 'done'}`);
-  toggle.addEventListener('change', () => save({ ...task, done: toggle.checked }));
+  toggle.addEventListener('change', () => setDone(task, toggle.checked));
 
   const body = document.createElement('div');
   body.className = 'body';
@@ -113,6 +164,12 @@ function renderTask(task) {
     chip.setAttribute('aria-label', `Show tasks tagged ${tag}`);
     chip.addEventListener('click', () => { filter.tag = tag; render(); });
     meta.append(chip);
+  }
+  if (task.repeat) {
+    const rep = document.createElement('span');
+    rep.className = 'chip repeat';
+    rep.textContent = '↻ ' + repeatLabel(task.repeat);
+    meta.append(rep);
   }
   if (task.dueDate) {
     const due = document.createElement('span');
@@ -147,7 +204,18 @@ function startEdit(li, task) {
   const tagsField = Object.assign(document.createElement('input'), { className: 'edit-tags', value: task.tags.join(', '), placeholder: 'tags' });
   tagsField.setAttribute('aria-label', 'Edit tags');
 
-  editor.append(titleField, dueField, tagsField);
+  const repeatField = repeatInput.cloneNode(true);
+  repeatField.removeAttribute('id');
+  repeatField.className = 'edit-repeat';
+  repeatField.value = repeatValue(task.repeat);
+  const everyField = everyInput.cloneNode(true);
+  everyField.removeAttribute('id');
+  everyField.className = 'edit-every';
+  everyField.value = task.repeat?.every > 1 ? task.repeat.every : 3;
+  everyField.hidden = repeatField.value !== 'custom';
+  repeatField.addEventListener('change', () => { everyField.hidden = repeatField.value !== 'custom'; });
+
+  editor.append(titleField, dueField, tagsField, repeatField, everyField);
   li.querySelector('.body').replaceWith(editor);
   titleField.focus();
   titleField.select();
@@ -158,7 +226,8 @@ function startEdit(li, task) {
     finished = true;
     const value = titleField.value.trim();
     if (!commit) return render();
-    save({ ...task, title: value || task.title, dueDate: dueField.value || null, tags: parseTags(tagsField.value) });
+    const fields = { title: value || task.title, dueDate: dueField.value || null, tags: parseTags(tagsField.value) };
+    save({ ...task, ...withRepeat(fields, readRepeat(repeatField, everyField)) });
   };
   editor.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') finish(true);
@@ -174,6 +243,23 @@ async function save(task) {
   const updated = await db.update(task);
   tasks = tasks.map((t) => (t.id === updated.id ? updated : t));
   render();
+}
+
+// Checking off a recurring task keeps it as done and creates the next occurrence once.
+// The done task remembers that copy (nextId), so unchecking/re-checking never duplicates,
+// and unchecking never deletes the copy.
+async function setDone(task, done) {
+  if (done && task.repeat && !task.nextId) {
+    const next = await db.add({
+      title: task.title,
+      tags: task.tags,
+      repeat: task.repeat,
+      dueDate: nextDue(task.dueDate || today(), task.repeat),
+    });
+    tasks.push(next);
+    return save({ ...task, done, nextId: next.id });
+  }
+  return save({ ...task, done });
 }
 
 async function removeTask(task) {
@@ -192,11 +278,15 @@ form.addEventListener('submit', async (e) => {
     return;
   }
   error.hidden = true;
-  tasks.push(await db.add({ title, dueDate: dueInput.value || null, tags: parseTags(tagsInput.value) }));
+  const fields = { title, dueDate: dueInput.value || null, tags: parseTags(tagsInput.value) };
+  tasks.push(await db.add(withRepeat(fields, readRepeat(repeatInput, everyInput))));
   form.reset();
+  everyInput.hidden = true;
   input.focus();
   render();
 });
+
+repeatInput.addEventListener('change', () => { everyInput.hidden = repeatInput.value !== 'custom'; });
 
 input.addEventListener('input', () => { error.hidden = true; });
 

@@ -15,6 +15,14 @@
       <div class="form-row">
         <input id="new-due" type="date" aria-label="Due date (optional)">
         <input id="new-tags" type="text" placeholder="Tags: work, urgent" aria-label="Tags, comma separated (optional)">
+        <select id="new-repeat" aria-label="Repeat">
+          <option value="">No repeat</option>
+          <option value="day:1">Daily</option>
+          <option value="week:1">Weekly</option>
+          <option value="month:1">Monthly</option>
+          <option value="custom">Every N days</option>
+        </select>
+        <input id="new-every" type="number" min="1" max="365" value="3" aria-label="Repeat every N days" hidden>
         <button type="submit">Add</button>
       </div>
     </form>
