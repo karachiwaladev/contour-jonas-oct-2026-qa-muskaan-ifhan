@@ -71,6 +71,18 @@ button {
 button:disabled { opacity: 0.4; cursor: default; }
 
 input[type="date"] { flex: 0 0 auto; }
+input[type="number"] {
+  width: 4.5em;
+  padding: 8px;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.form-row { flex-wrap: wrap; }
+.form-row #new-tags { flex: 1 1 160px; }
+.chip.repeat { color: var(--accent); border-color: var(--accent); }
 select { flex: 0 0 auto; padding: 8px 10px; }
 select option { background: var(--card); color: var(--text); }
 
