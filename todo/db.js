@@ -1,15 +1,28 @@
 // Minimal promise wrapper around IndexedDB for the todo app.
 // Bump DB_VERSION and extend upgrade() when later tickets add fields or indexes.
 const DB_NAME = 'factory-todo';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 const STORE = 'tasks';
 
 let dbPromise;
 
-function upgrade(db, oldVersion) {
+function upgrade(db, tx, oldVersion) {
   if (oldVersion < 1) {
     const store = db.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true });
     store.createIndex('createdAt', 'createdAt');
+  }
+  if (oldVersion < 2) {
+    // Ticket #4: due dates (YYYY-MM-DD, local) and tags
+    const store = tx.objectStore(STORE);
+    store.createIndex('dueDate', 'dueDate');
+    store.createIndex('tags', 'tags', { multiEntry: true });
+    store.openCursor().onsuccess = (e) => {
+      const cursor = e.target.result;
+      if (!cursor) return;
+      const t = cursor.value;
+      cursor.update({ ...t, dueDate: t.dueDate ?? null, tags: t.tags ?? [] });
+      cursor.continue();
+    };
   }
 }
 
@@ -17,7 +30,7 @@ function open() {
   if (!dbPromise) {
     dbPromise = new Promise((resolve, reject) => {
       const req = indexedDB.open(DB_NAME, DB_VERSION);
-      req.onupgradeneeded = (e) => upgrade(req.result, e.oldVersion);
+      req.onupgradeneeded = (e) => upgrade(req.result, req.transaction, e.oldVersion);
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
     });
@@ -42,9 +55,9 @@ window.db = {
     const tasks = await run('readonly', (s) => s.index('createdAt').getAll());
     return tasks ?? [];
   },
-  async add(title) {
+  async add(fields) {
     const now = Date.now();
-    const task = { title, done: false, createdAt: now, updatedAt: now };
+    const task = { dueDate: null, tags: [], ...fields, done: false, createdAt: now, updatedAt: now };
     const id = await run('readwrite', (s) => s.add(task));
     return { ...task, id };
   },
