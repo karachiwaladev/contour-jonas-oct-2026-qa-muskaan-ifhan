@@ -42,9 +42,11 @@ body {
 
 h1 { margin: 0 0 16px; font-size: 1.75rem; }
 
-form { display: flex; gap: 8px; }
+form { display: flex; flex-direction: column; gap: 8px; }
 
-input[type="text"], .edit {
+.form-row { display: flex; gap: 8px; }
+
+input[type="text"], input[type="date"], select, .edit {
   flex: 1;
   padding: 10px 12px;
   font: inherit;
@@ -68,7 +70,55 @@ button {
 
 button:disabled { opacity: 0.4; cursor: default; }
 
+input[type="date"] { flex: 0 0 auto; }
+select { flex: 0 0 auto; padding: 8px 10px; }
+select option { background: var(--card); color: var(--text); }
+
 .error { margin: 8px 0 0; color: var(--danger); font-size: 0.9rem; }
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.segmented { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+
+.segmented button {
+  padding: 6px 12px;
+  color: var(--muted);
+  background: transparent;
+  border-radius: 0;
+}
+
+.segmented button[aria-pressed="true"] { color: #fff; background: var(--accent); }
+
+button.link { padding: 6px 8px; color: var(--accent); background: transparent; }
+
+.task .body { flex: 1; min-width: 0; }
+
+.meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+
+.chip {
+  padding: 1px 8px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+button.chip.tag { cursor: pointer; }
+button.chip.tag:hover { color: var(--accent); border-color: var(--accent); }
+
+.task.overdue .chip.due { color: var(--danger); border-color: var(--danger); font-weight: 600; }
+
+.editor { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; }
+.editor .edit { flex: 1 1 100%; }
+.editor input { padding: 6px 8px; font: inherit; color: inherit; background: transparent; border: 1px solid var(--border); border-radius: 6px; }
+.editor .edit-tags { flex: 1; }
 
 #task-list { list-style: none; margin: 16px 0 0; padding: 0; }
 
@@ -116,4 +166,6 @@ footer button {
 
 @media (max-width: 600px) {
   .app { margin: 0; min-height: 100vh; border: 0; border-radius: 0; padding: 16px; }
+  .form-row { flex-wrap: wrap; }
+  .form-row #new-tags { flex: 1 1 100%; order: -1; }
 }
