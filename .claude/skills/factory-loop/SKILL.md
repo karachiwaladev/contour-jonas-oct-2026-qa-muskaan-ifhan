@@ -40,6 +40,7 @@ Because the PR is opened from your own account, GitHub won't let you formally ap
 
 - `GET /repos/{repo}/issues?state=open&per_page=100&sort=created&direction=asc`. Drop entries that have a `pull_request` key.
 - Skip issues that already have an open PR (`Closes #N`), because they're in review.
+- **Resume before starting fresh.** If a local or remote `ticket-N-*` branch already exists for an open ticket with no PR, check it out and continue from the first unfinished step, usually Step 7 (verify). Don't rebuild it. Clarifications and the plan are already in the ticket's comments.
 - Take the oldest issue that remains. If none remain, report "No open tickets to pick up" and stop. A `/loop` can end there.
 
 ## Step 3: Claim and read
@@ -76,7 +77,7 @@ Present it with **AskUserQuestion**, with the options "Approve plan" and "Change
 
 ## Step 7: Verify in the browser with chrome-devtools (anything with a UI)
 
-Use the `chrome-devtools` MCP tools. If they aren't loaded, check with ToolSearch for "chrome-devtools". If the server isn't connected, tell the user to enable it in `/mcp`, because `.mcp.json` in this repo defines it.
+Use the `chrome-devtools` MCP tools. If they aren't loaded, check with ToolSearch for "chrome-devtools". If the server isn't connected, commit the build on the branch and stop, without opening a PR. Tell the user to enable the server in `/mcp` (`.mcp.json` in this repo defines it). If this run is part of a `/loop`, pause the loop too, because every tick would hit the same wall. The next run resumes from this step.
 
 1. Open the app. Static pages can load straight from `file:///<absolute path>/index.html`. For anything that needs a server, start one in the background (Node is at `C:\Program Files\nodejs`, which isn't on PATH, so use the full path) and open `http://localhost:<port>`.
 2. Go through **every acceptance check** from the plan, as a user would: fill inputs, click buttons, reload to confirm persistence, and use filters. After each check, take a snapshot and confirm the expected state is really on the page.
