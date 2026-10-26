@@ -1,0 +1,9 @@
+# Claude Code runtime files
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
+
+# never auto-commit secrets
+.env
+.env.*
+*.pem
+*.key
