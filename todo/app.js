@@ -6,6 +6,8 @@ const dueInput = document.getElementById('new-due');
 const tagsInput = document.getElementById('new-tags');
 const repeatInput = document.getElementById('new-repeat');
 const everyInput = document.getElementById('new-every');
+const priorityInput = document.getElementById('new-priority');
+const priorityFilter = document.getElementById('priority-filter');
 const list = document.getElementById('task-list');
 const empty = document.getElementById('empty-state');
 const count = document.getElementById('remaining');
@@ -16,7 +18,12 @@ const tagFilter = document.getElementById('tag-filter');
 const clearFilters = document.getElementById('clear-filters');
 
 let tasks = [];
-const filter = { status: 'all', tag: '' };
+const filter = { status: 'all', tag: '', priority: '' }; // priority: '' = all, 'none' = no priority
+
+// Ticket #6: High > Medium > Low > None
+const PRIORITY_RANK = { high: 0, medium: 1, low: 2 };
+const PRIORITY_LABEL = { high: 'High', medium: 'Medium', low: 'Low' };
+const rank = (task) => PRIORITY_RANK[task.priority] ?? 3;
 
 // --- helpers -------------------------------------------------------------
 
@@ -99,11 +106,14 @@ function byDue(a, b) {
   return a.createdAt - b.createdAt;
 }
 
+const byPriorityThenDue = (a, b) => rank(a) - rank(b) || byDue(a, b);
+
 function visibleTasks() {
   return tasks
     .filter((t) => filter.status === 'all' || (filter.status === 'done' ? t.done : !t.done))
     .filter((t) => !filter.tag || t.tags.includes(filter.tag))
-    .sort(byDue);
+    .filter((t) => !filter.priority || (filter.priority === 'none' ? !t.priority : t.priority === filter.priority))
+    .sort(byPriorityThenDue);
 }
 
 // --- rendering -----------------------------------------------------------
@@ -113,15 +123,17 @@ function render() {
   const shown = visibleTasks();
   list.replaceChildren(...shown.map(renderTask));
 
-  const filtered = filter.status !== 'all' || filter.tag;
+  const filtered = filter.status !== 'all' || filter.tag || filter.priority;
+  priorityFilter.value = filter.priority;
   empty.hidden = shown.length > 0;
   empty.textContent = tasks.length && filtered ? 'No tasks match this filter.' : 'No tasks yet. Add one above.';
 
   statusButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.status === filter.status)));
   clearFilters.hidden = !filtered;
 
-  const left = tasks.filter((t) => !t.done).length;
-  count.textContent = `${left} ${left === 1 ? 'task' : 'tasks'} left`;
+  // Ticket #9: counts always cover all tasks, not just the filtered view
+  const done = tasks.filter((t) => t.done).length;
+  count.textContent = `${tasks.length - done} open · ${done} done`;
   clearBtn.disabled = !tasks.some((t) => t.done);
 }
 
@@ -156,6 +168,13 @@ function renderTask(task) {
 
   const meta = document.createElement('div');
   meta.className = 'meta';
+  if (task.priority) {
+    const pri = document.createElement('span');
+    pri.className = `chip priority priority-${task.priority}`;
+    pri.textContent = PRIORITY_LABEL[task.priority];
+    pri.dataset.priority = task.priority;
+    meta.append(pri);
+  }
   for (const tag of task.tags) {
     const chip = document.createElement('button');
     chip.type = 'button';
@@ -215,7 +234,14 @@ function startEdit(li, task) {
   everyField.hidden = repeatField.value !== 'custom';
   repeatField.addEventListener('change', () => { everyField.hidden = repeatField.value !== 'custom'; });
 
-  editor.append(titleField, dueField, tagsField, repeatField, everyField);
+  const priorityField = priorityInput.cloneNode(true);
+  priorityField.removeAttribute('id');
+  priorityField.className = 'edit-priority';
+  priorityField.value = task.priority ?? '';
+
+  const fields = { title: titleField, due: dueField, tags: tagsField, priority: priorityField, repeat: repeatField, every: everyField };
+  for (const [name, el] of Object.entries(fields)) el.name = `edit-${name}`;
+  editor.append(...Object.values(fields));
   li.querySelector('.body').replaceWith(editor);
   titleField.focus();
   titleField.select();
@@ -226,7 +252,12 @@ function startEdit(li, task) {
     finished = true;
     const value = titleField.value.trim();
     if (!commit) return render();
-    const fields = { title: value || task.title, dueDate: dueField.value || null, tags: parseTags(tagsField.value) };
+    const fields = {
+      title: value || task.title,
+      dueDate: dueField.value || null,
+      tags: parseTags(tagsField.value),
+      priority: priorityField.value || null,
+    };
     save({ ...task, ...withRepeat(fields, readRepeat(repeatField, everyField)) });
   };
   editor.addEventListener('keydown', (e) => {
@@ -253,6 +284,7 @@ async function setDone(task, done) {
     const next = await db.add({
       title: task.title,
       tags: task.tags,
+      priority: task.priority ?? null,
       repeat: task.repeat,
       dueDate: nextDue(task.dueDate || today(), task.repeat),
     });
@@ -278,7 +310,7 @@ form.addEventListener('submit', async (e) => {
     return;
   }
   error.hidden = true;
-  const fields = { title, dueDate: dueInput.value || null, tags: parseTags(tagsInput.value) };
+  const fields = { title, dueDate: dueInput.value || null, tags: parseTags(tagsInput.value), priority: priorityInput.value || null };
   tasks.push(await db.add(withRepeat(fields, readRepeat(repeatInput, everyInput))));
   form.reset();
   everyInput.hidden = true;
@@ -292,7 +324,8 @@ input.addEventListener('input', () => { error.hidden = true; });
 
 statusButtons.forEach((b) => b.addEventListener('click', () => { filter.status = b.dataset.status; render(); }));
 tagFilter.addEventListener('change', () => { filter.tag = tagFilter.value; render(); });
-clearFilters.addEventListener('click', () => { filter.status = 'all'; filter.tag = ''; render(); });
+priorityFilter.addEventListener('change', () => { filter.priority = priorityFilter.value; render(); });
+clearFilters.addEventListener('click', () => { filter.status = 'all'; filter.tag = ''; filter.priority = ''; render(); });
 
 clearBtn.addEventListener('click', async () => {
   const done = tasks.filter((t) => t.done);
