@@ -1,7 +1,7 @@
 # Todo
 
 A simple todo app that runs entirely in the browser and stores tasks in **IndexedDB**.
-Tickets #3, #4, #5, #6, #9 and #10.
+Tickets #3, #4, #5, #6, #9, #10 and #18.
 
 ## Features
 - Add a task (Enter or **Add**); blank tasks are rejected
@@ -24,7 +24,9 @@ Tickets #3, #4, #5, #6, #9 and #10.
 - **×** deletes a task after confirmation
 - **Clear completed** removes all done tasks after confirmation
 - Footer counts: **"3 open · 2 done"**, always across all tasks (filters don't change them)
-- Tasks persist across reloads
+- Tasks persist across reloads, and **stay in sync across open tabs**: a change in one tab
+  shows in the others straight away, and one tab can never overwrite another's newer edit
+  or bring back a task deleted elsewhere
 
 ## Run
 No build step: open `todo/index.html` in a browser. To serve it over HTTP instead:
@@ -69,3 +71,11 @@ writes back a stale record.
 
 To add a field: give it a default in `normalize()`. To add an index: bump `DB_VERSION`
 in `db.js` and add an `oldVersion < N` step in `upgrade()` that only changes the schema.
+
+**Saving across tabs (#18).** Never `put` a whole task from memory, because another tab may
+hold newer data. `db.update(id, changes)` reads the stored record and applies only `changes`
+in one transaction, returning `null` if the task was deleted elsewhere.
+`db.setDone(id, done, makeNext)` also creates a recurring task's next copy in that same
+transaction, so two tabs can't both create it. Every write posts to a
+`BroadcastChannel('factory-todo')`, and other tabs reload. While an editor is open, the
+reload waits until it closes.

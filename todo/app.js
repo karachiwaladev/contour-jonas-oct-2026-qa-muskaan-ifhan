@@ -278,14 +278,14 @@ function startEdit(li, task) {
     if (finished) return;
     finished = true;
     const value = titleField.value.trim();
-    if (!commit) return render();
+    if (!commit) return render(), syncIfPending();
     const fields = {
       title: value || task.title,
       dueDate: dueField.value || null,
       tags: parseTags(tagsField.value),
       priority: priorityField.value || null,
     };
-    save({ ...task, ...withRepeat(fields, readRepeat(repeatField, everyField)) });
+    save(task, withRepeat(fields, readRepeat(repeatField, everyField))).then(syncIfPending);
   };
   editor.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') finish(true);
@@ -297,29 +297,47 @@ function startEdit(li, task) {
 
 // --- actions -------------------------------------------------------------
 
-async function save(task) {
-  const updated = await db.update(task);
-  tasks = tasks.map((t) => (t.id === updated.id ? updated : t));
+// Ticket #18: saves send only the changed fields; db.update merges them into the stored
+// record. A task deleted in another tab comes back as null and is dropped here too.
+async function save(task, changes) {
+  const updated = await db.update(task.id, changes);
+  tasks = updated ? tasks.map((t) => (t.id === updated.id ? updated : t)) : tasks.filter((t) => t.id !== task.id);
   render();
+  return updated;
 }
 
 // Checking off a recurring task keeps it as done and creates the next occurrence once.
 // The done task remembers that copy (nextId), so unchecking/re-checking never duplicates,
-// and unchecking never deletes the copy.
+// and unchecking never deletes the copy. db.setDone does both in one transaction, so two
+// tabs can't both create the copy.
 async function setDone(task, done) {
-  if (done && task.repeat && !task.nextId) {
-    const next = await db.add({
-      title: task.title,
-      tags: task.tags,
-      priority: task.priority ?? null,
-      repeat: task.repeat,
-      dueDate: nextDue(task.dueDate || today(), task.repeat),
-    });
-    tasks.push(next);
-    return save({ ...task, done, nextId: next.id });
+  const res = await db.setDone(task.id, done, (t) => ({
+    title: t.title,
+    tags: t.tags,
+    priority: t.priority ?? null,
+    repeat: t.repeat,
+    dueDate: nextDue(t.dueDate || today(), t.repeat),
+  }));
+  if (!res) {
+    tasks = tasks.filter((t) => t.id !== task.id);
+  } else {
+    tasks = tasks.map((t) => (t.id === res.task.id ? res.task : t));
+    if (res.created) tasks.push(res.created);
   }
-  return save({ ...task, done });
+  render();
 }
+
+// Ticket #18: another tab changed the data, so reload it. Wait while an editor is open,
+// so the edit in progress isn't thrown away.
+let syncPending = false;
+async function syncFromDb() {
+  if (document.querySelector('#task-list .editor')) { syncPending = true; return; }
+  syncPending = false;
+  tasks = await db.getAll();
+  render();
+}
+function syncIfPending() { if (syncPending) syncFromDb(); }
+db.onChange(syncFromDb);
 
 async function removeTask(task) {
   if (!confirm(`Delete "${task.title}"?`)) return;

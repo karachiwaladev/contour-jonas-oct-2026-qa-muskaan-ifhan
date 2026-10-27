@@ -34,7 +34,7 @@ project changes meaningfully, and keep each summary to one line.
 
 | Project | Folder | Summary | Tickets |
 |---------|--------|---------|---------|
-| Todo | [`todo/`](todo/README.md) | Browser todo app (plain JS + IndexedDB): tasks, due dates, tags, priority, search, filters, recurring | #3–#6, #9, #10 |
+| Todo | [`todo/`](todo/README.md) | Browser todo app (plain JS + IndexedDB): tasks, due dates, tags, priority, search, filters, recurring | #3–#6, #9, #10, #18 |
 
 ## The factory loop
 
