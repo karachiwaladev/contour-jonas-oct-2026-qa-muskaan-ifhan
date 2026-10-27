@@ -1,0 +1,2 @@
+# bash scripts (hooks, gh-api.sh) break with CRLF line endings
+*.sh text eol=lf
