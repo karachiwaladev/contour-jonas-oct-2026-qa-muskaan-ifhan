@@ -15,6 +15,12 @@
       <div class="form-row">
         <input id="new-due" type="date" aria-label="Due date (optional)">
         <input id="new-tags" type="text" placeholder="Tags: work, urgent" aria-label="Tags, comma separated (optional)">
+        <select id="new-priority" aria-label="Priority">
+          <option value="">No priority</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
         <select id="new-repeat" aria-label="Repeat">
           <option value="">No repeat</option>
           <option value="day:1">Daily</option>
@@ -35,6 +41,13 @@
         <button type="button" data-status="done" aria-pressed="false">Completed</button>
       </div>
       <select id="tag-filter" aria-label="Filter by tag"></select>
+      <select id="priority-filter" aria-label="Filter by priority">
+        <option value="">All priorities</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+        <option value="none">No priority</option>
+      </select>
       <button id="clear-filters" type="button" class="link" hidden>Clear filters</button>
     </div>
 
