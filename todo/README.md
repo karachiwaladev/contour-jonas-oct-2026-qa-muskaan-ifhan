@@ -9,8 +9,11 @@ Tickets #3, #4, #5, #6, #9 and #10.
   priority first (High → None), then due date
 - Optional **due date** (undated last within a priority); overdue tasks are red
 - Optional **tags** (`work, urgent`): trimmed, lowercased, de-duplicated, shown as chips
-- **Filters:** All / Active / Completed, a tag dropdown (or click any tag chip), and a
-  priority dropdown; they combine, and *Clear filters* resets them all
+- **Search** as you type: case-insensitive match on the title or any tag (`#work` works too);
+  clear it with **×**, **Esc** or by emptying the box
+- **Filters:** All / Active / Completed, a tag dropdown (or click any tag chip), a priority
+  dropdown and a due-date dropdown (Any / Overdue / Today / Next 7 days / No date); they
+  combine with search, and *Clear filters* resets them all, search included
 - **Recurring tasks:** repeat daily, weekly, monthly or every N days (default due date: today).
   Ticking one keeps it as done and creates the next occurrence; monthly keeps its day,
   clamped to short months (Jan 31 → Feb 28 → Mar 31). Unticking never deletes the copy,
