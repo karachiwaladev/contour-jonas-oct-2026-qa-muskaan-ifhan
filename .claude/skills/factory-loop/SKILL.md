@@ -1,6 +1,6 @@
 ---
 name: factory-loop
-description: Work the next GitHub issue ("Ticket #N") in this repo end to end. Claim it with a 🚀 reaction, clarify assumptions, plan and get approval, build the files/projects/features it asks for on a branch, verify in the browser with chrome-devtools, attach screenshots, and open a PR that waits for manual review before the ticket closes. Also merges PRs the user has approved. Use this whenever the user says things like "work the next ticket", "run the factory loop", "check for new tickets", "pick up issues", "process the tickets", or "is my PR approved", and as the prompt for a /loop that should keep draining the ticket queue, even if they don't name the skill.
+description: Work this repo's GitHub ticket queue one step at a time, either by merging an approved PR or by taking the oldest open ticket ("Ticket #N") through clarify, plan, build, browser check and a PR for manual review. Use it for any request to work, pick up or check tickets or issues, to check PR approval status, or as the prompt for a /loop that drains the queue, even if the user doesn't name the skill.
 ---
 
 # Factory loop
@@ -13,7 +13,7 @@ Every ticket ends in a pull request, and **no ticket closes until a human has re
 
 - **Do the thing the ticket asks for.** Create the files, folders, projects or features it describes. Answering in a comment is not enough when the ticket implies a change to the repo.
 - **Only add and modify. Never destroy.** Don't delete files or folders the ticket didn't ask you to remove. Don't force-push, `reset --hard`, `git clean`, rebase or amend pushed commits, or delete branches. Don't delete or edit anyone else's issues, comments or PRs. If a ticket genuinely needs a removal, say so in the plan and get it approved first.
-- Work only on a `ticket-N-*` branch, never directly on `main`. A Stop hook may commit and push whatever branch is checked out, so being on the right branch matters.
+- Work only on a `ticket-N-*` branch, never directly on `main`.
 - Never commit secrets such as `.env` files or keys.
 - A PreToolUse hook (`.claude/hooks/guard-commands.sh`) and `permissions.deny` rules block recursive force deletes, force pushes, piping downloads into a shell, and `.env` access. If the hook blocks you, don't try to get around it. Explain what you needed and let the user decide.
 
