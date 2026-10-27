@@ -1,7 +1,7 @@
 # Todo
 
 A simple todo app that runs entirely in the browser and stores tasks in **IndexedDB**.
-Tickets #3, #4, #5, #6 and #9.
+Tickets #3, #4, #5, #6, #9 and #10.
 
 ## Features
 - Add a task (Enter or **Add**); blank tasks are rejected

@@ -8,6 +8,9 @@ const repeatInput = document.getElementById('new-repeat');
 const everyInput = document.getElementById('new-every');
 const priorityInput = document.getElementById('new-priority');
 const priorityFilter = document.getElementById('priority-filter');
+const dueFilter = document.getElementById('due-filter');
+const searchInput = document.getElementById('search');
+const clearSearch = document.getElementById('clear-search');
 const list = document.getElementById('task-list');
 const empty = document.getElementById('empty-state');
 const count = document.getElementById('remaining');
@@ -18,7 +21,8 @@ const tagFilter = document.getElementById('tag-filter');
 const clearFilters = document.getElementById('clear-filters');
 
 let tasks = [];
-const filter = { status: 'all', tag: '', priority: '' }; // priority: '' = all, 'none' = no priority
+// priority: '' = all, 'none' = no priority; due: '' | 'overdue' | 'today' | 'week' | 'none'
+const filter = { status: 'all', tag: '', priority: '', due: '', search: '' };
 
 // Ticket #6: High > Medium > Low > None
 const PRIORITY_RANK = { high: 0, medium: 1, low: 2 };
@@ -108,11 +112,31 @@ function byDue(a, b) {
 
 const byPriorityThenDue = (a, b) => rank(a) - rank(b) || byDue(a, b);
 
+// Ticket #10: Overdue matches the red chip; Next 7 days = today through 6 days ahead
+function matchesDue(task) {
+  if (!filter.due) return true;
+  if (filter.due === 'none') return !task.dueDate;
+  if (filter.due === 'overdue') return isOverdue(task);
+  if (!task.dueDate) return false;
+  if (filter.due === 'today') return task.dueDate === today();
+  const end = new Date();
+  end.setDate(end.getDate() + 6);
+  return task.dueDate >= today() && task.dueDate <= toYmd(end);
+}
+
+// Ticket #10: case-insensitive substring of the title or any tag; a leading # is ignored
+function matchesSearch(task) {
+  const q = filter.search.trim().toLowerCase().replace(/^#/, '');
+  return !q || task.title.toLowerCase().includes(q) || task.tags.some((t) => t.includes(q));
+}
+
 function visibleTasks() {
   return tasks
     .filter((t) => filter.status === 'all' || (filter.status === 'done' ? t.done : !t.done))
     .filter((t) => !filter.tag || t.tags.includes(filter.tag))
     .filter((t) => !filter.priority || (filter.priority === 'none' ? !t.priority : t.priority === filter.priority))
+    .filter(matchesDue)
+    .filter(matchesSearch)
     .sort(byPriorityThenDue);
 }
 
@@ -123,8 +147,11 @@ function render() {
   const shown = visibleTasks();
   list.replaceChildren(...shown.map(renderTask));
 
-  const filtered = filter.status !== 'all' || filter.tag || filter.priority;
+  const filtered = filter.status !== 'all' || filter.tag || filter.priority || filter.due || filter.search.trim();
   priorityFilter.value = filter.priority;
+  dueFilter.value = filter.due;
+  if (searchInput.value !== filter.search) searchInput.value = filter.search;
+  clearSearch.hidden = !filter.search;
   empty.hidden = shown.length > 0;
   empty.textContent = tasks.length && filtered ? 'No tasks match this filter.' : 'No tasks yet. Add one above.';
 
@@ -325,7 +352,16 @@ input.addEventListener('input', () => { error.hidden = true; });
 statusButtons.forEach((b) => b.addEventListener('click', () => { filter.status = b.dataset.status; render(); }));
 tagFilter.addEventListener('change', () => { filter.tag = tagFilter.value; render(); });
 priorityFilter.addEventListener('change', () => { filter.priority = priorityFilter.value; render(); });
-clearFilters.addEventListener('click', () => { filter.status = 'all'; filter.tag = ''; filter.priority = ''; render(); });
+dueFilter.addEventListener('change', () => { filter.due = dueFilter.value; render(); });
+searchInput.addEventListener('input', () => { filter.search = searchInput.value; render(); });
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && filter.search) { e.preventDefault(); filter.search = ''; render(); }
+});
+clearSearch.addEventListener('click', () => { filter.search = ''; render(); searchInput.focus(); });
+clearFilters.addEventListener('click', () => {
+  Object.assign(filter, { status: 'all', tag: '', priority: '', due: '', search: '' });
+  render();
+});
 
 clearBtn.addEventListener('click', async () => {
   const done = tasks.filter((t) => t.done);
