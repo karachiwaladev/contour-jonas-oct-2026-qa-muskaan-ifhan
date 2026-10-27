@@ -190,7 +190,7 @@ function renderTask(task) {
   const title = document.createElement('span');
   title.className = 'title';
   title.textContent = task.title;
-  title.title = 'Double-click to edit';
+  title.title = 'Double-click or press Edit to change';
   title.addEventListener('dblclick', () => startEdit(li, task));
 
   const meta = document.createElement('div');
@@ -228,6 +228,14 @@ function renderTask(task) {
   body.append(title);
   if (meta.childElementCount) body.append(meta);
 
+  // Ticket #19: a visible, keyboard-reachable way to edit (double-click stays as a shortcut)
+  const edit = document.createElement('button');
+  edit.className = 'edit-btn';
+  edit.type = 'button';
+  edit.textContent = 'Edit';
+  edit.setAttribute('aria-label', `Edit "${task.title}"`);
+  edit.addEventListener('click', () => startEdit(li, task));
+
   const del = document.createElement('button');
   del.className = 'delete';
   del.type = 'button';
@@ -235,11 +243,21 @@ function renderTask(task) {
   del.setAttribute('aria-label', `Delete "${task.title}"`);
   del.addEventListener('click', () => removeTask(task));
 
-  li.append(toggle, body, del);
+  li.append(toggle, body, edit, del);
   return li;
 }
 
+// After the list re-renders, put focus on a control of the given task, but only if focus
+// was lost (it fell to <body>), so we never steal it from something the user clicked.
+function restoreFocus(id, selector) {
+  const active = document.activeElement;
+  if (active && active !== document.body && document.contains(active)) return;
+  list.querySelector(`.task[data-id="${id}"] ${selector}`)?.focus();
+}
+
 function startEdit(li, task) {
+  if (li.querySelector('.editor')) return;
+  li.querySelector('.edit-btn').hidden = true;
   const editor = document.createElement('div');
   editor.className = 'editor';
 
@@ -278,14 +296,16 @@ function startEdit(li, task) {
     if (finished) return;
     finished = true;
     const value = titleField.value.trim();
-    if (!commit) return render(), syncIfPending();
+    // Ticket #19: after saving or cancelling, focus returns to this task's Edit button
+    const done = () => { restoreFocus(task.id, '.edit-btn'); syncIfPending(); };
+    if (!commit) return render(), done();
     const fields = {
       title: value || task.title,
       dueDate: dueField.value || null,
       tags: parseTags(tagsField.value),
       priority: priorityField.value || null,
     };
-    save(task, withRepeat(fields, readRepeat(repeatField, everyField))).then(syncIfPending);
+    save(task, withRepeat(fields, readRepeat(repeatField, everyField))).then(done);
   };
   editor.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') finish(true);

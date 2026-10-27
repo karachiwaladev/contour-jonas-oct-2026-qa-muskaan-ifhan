@@ -191,6 +191,17 @@ button.chip.tag:hover { color: var(--accent); border-color: var(--accent); }
 
 .task .delete:hover { color: var(--danger); }
 
+/* Ticket #19: visible Edit control */
+.task .edit-btn {
+  padding: 4px 10px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.task .edit-btn:hover { color: var(--accent); border-color: var(--accent); }
+
 .empty { margin: 24px 0 8px; color: var(--muted); text-align: center; }
 
 footer {

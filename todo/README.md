@@ -1,7 +1,7 @@
 # Todo
 
 A simple todo app that runs entirely in the browser and stores tasks in **IndexedDB**.
-Tickets #3, #4, #5, #6, #9, #10 and #18.
+Tickets #3, #4, #5, #6, #9, #10, #18 and #19.
 
 ## Features
 - Add a task (Enter or **Add**); blank tasks are rejected
@@ -19,8 +19,9 @@ Tickets #3, #4, #5, #6, #9, #10 and #18.
   clamped to short months (Jan 31 → Feb 28 → Mar 31). Unticking never deletes the copy,
   and re-ticking never duplicates it.
 - Tick a task to mark it done, untick to undo
-- Double-click a task's text to edit its title, due date, tags, priority and repeat
-  (Enter saves, Esc cancels)
+- **Edit** button on every task (or double-click its text) to change its title, due date,
+  tags, priority and repeat; works from the keyboard (Tab, then Enter or Space). Enter saves,
+  Esc cancels, and focus returns to that task's Edit button
 - **×** deletes a task after confirmation
 - **Clear completed** removes all done tasks after confirmation
 - Footer counts: **"3 open · 2 done"**, always across all tasks (filters don't change them)
