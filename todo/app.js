@@ -131,8 +131,9 @@ function render() {
   statusButtons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.status === filter.status)));
   clearFilters.hidden = !filtered;
 
-  const left = tasks.filter((t) => !t.done).length;
-  count.textContent = `${left} ${left === 1 ? 'task' : 'tasks'} left`;
+  // Ticket #9: counts always cover all tasks, not just the filtered view
+  const done = tasks.filter((t) => t.done).length;
+  count.textContent = `${tasks.length - done} open · ${done} done`;
   clearBtn.disabled = !tasks.some((t) => t.done);
 }
 

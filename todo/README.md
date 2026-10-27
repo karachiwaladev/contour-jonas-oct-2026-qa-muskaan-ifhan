@@ -1,7 +1,7 @@
 # Todo
 
 A simple todo app that runs entirely in the browser and stores tasks in **IndexedDB**.
-Tickets #3, #4, #5 and #6.
+Tickets #3, #4, #5, #6 and #9.
 
 ## Features
 - Add a task (Enter or **Add**); blank tasks are rejected
@@ -20,7 +20,7 @@ Tickets #3, #4, #5 and #6.
   (Enter saves, Esc cancels)
 - **×** deletes a task after confirmation
 - **Clear completed** removes all done tasks after confirmation
-- "N tasks left" counter
+- Footer counts: **"3 open · 2 done"**, always across all tasks (filters don't change them)
 - Tasks persist across reloads
 
 ## Run
