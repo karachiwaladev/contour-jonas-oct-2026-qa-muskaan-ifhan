@@ -34,6 +34,11 @@
     </form>
     <p id="form-error" class="error" role="alert" hidden>Type a task first.</p>
 
+    <div class="search" role="search">
+      <input id="search" type="search" placeholder="Search tasks or #tags…" aria-label="Search tasks by title or tag" autocomplete="off">
+      <button id="clear-search" type="button" class="clear-search" aria-label="Clear search" hidden>×</button>
+    </div>
+
     <div class="filters" role="toolbar" aria-label="Filter tasks">
       <div class="segmented">
         <button type="button" data-status="all" aria-pressed="true">All</button>
@@ -47,6 +52,13 @@
         <option value="medium">Medium</option>
         <option value="low">Low</option>
         <option value="none">No priority</option>
+      </select>
+      <select id="due-filter" aria-label="Filter by due date">
+        <option value="">Any date</option>
+        <option value="overdue">Overdue</option>
+        <option value="today">Today</option>
+        <option value="week">Next 7 days</option>
+        <option value="none">No date</option>
       </select>
       <button id="clear-filters" type="button" class="link" hidden>Clear filters</button>
     </div>
