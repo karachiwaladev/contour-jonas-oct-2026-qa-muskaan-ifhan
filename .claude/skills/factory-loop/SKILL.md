@@ -13,7 +13,7 @@ Every ticket ends in a pull request, and **no ticket closes until a human has re
 
 - **Do the thing the ticket asks for.** Create the files, folders, projects or features it describes. Answering in a comment is not enough when the ticket implies a change to the repo.
 - **Only add and modify. Never destroy.** Don't delete files or folders the ticket didn't ask you to remove. Don't force-push, `reset --hard`, `git clean`, rebase or amend pushed commits, or delete branches. Don't delete or edit anyone else's issues, comments or PRs. If a ticket genuinely needs a removal, say so in the plan and get it approved first.
-- Work only on a `ticket-N-*` branch, never directly on `main`. A Stop hook may commit and push whatever branch is checked out, so being on the right branch matters.
+- Work only on a `ticket-N-*` branch, never directly on `main`.
 - Never commit secrets such as `.env` files or keys.
 - A PreToolUse hook (`.claude/hooks/guard-commands.sh`) and `permissions.deny` rules block recursive force deletes, force pushes, piping downloads into a shell, and `.env` access. If the hook blocks you, don't try to get around it. Explain what you needed and let the user decide.
 
@@ -96,15 +96,14 @@ Present it with **AskUserQuestion**, with the options "Approve plan" and "Change
 
 ## Step 7: Verify in the browser with chrome-devtools (anything with a UI)
 
-Use the `chrome-devtools` MCP tools. If they aren't loaded, check with ToolSearch for "chrome-devtools". If the server isn't connected, commit the build on the branch and stop, without opening a PR. Tell the user to enable the server in `/mcp` (`.mcp.json` in this repo defines it). If this run is part of a `/loop`, pause the loop too, because every tick would hit the same wall. The next run resumes from this step.
+Use the `chrome-devtools` MCP tools (ToolSearch "chrome-devtools" if they aren't loaded). If the server isn't connected, commit the build, stop without a PR, ask the user to enable it in `/mcp`, and pause any `/loop`, since every tick would hit the same wall. The next run resumes here.
 
 1. Open the app. Static pages can load straight from `file:///<absolute path>/index.html`. For anything that needs a server, start one in the background (Node is at `C:\Program Files\nodejs`, which isn't on PATH, so use the full path) and open `http://localhost:<port>`.
 2. Go through **every acceptance check** from the plan, as a user would: fill inputs, click buttons, reload to confirm persistence, and use filters. After each check, take a snapshot and confirm the expected state is really on the page.
 3. Check the console messages for errors. Any error means the check fails.
-4. Take a screenshot of each key state, for example the empty state, data added, an item completed and a filter applied. Save them into the repo as `<project>/docs/screenshots/ticket-N/<nn>-<state>.png`.
-5. If a check fails, fix the problem and verify again. Don't open a PR with failing checks. If you can't fix it, say so explicitly in the PR and on the ticket.
-
-Commit the screenshots on the branch.
+4. Run the **personas** in `.claude/personas.yaml`, picked by its `orchestration` rules for the areas this ticket touches. Each runs in its own isolated context and reports in the `contract` format; Triage Tess merges the findings into the PR's verdict. Fix blockers and majors before the PR, or list them in it.
+5. Screenshot each key state into `<project>/docs/screenshots/ticket-N/<nn>-<state>.png` and commit them on the branch.
+6. If a check fails, fix it and verify again. Don't open a PR with failing checks; if you can't fix one, say so in the PR and on the ticket.
 
 ## Step 8: Open the PR for review
 
